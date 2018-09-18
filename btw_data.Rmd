@@ -1,0 +1,546 @@
+---
+title: "Tidy Template"
+author: "Fabio Votta"
+date: "The Date"
+output: html_output
+---
+
+This script is about:
+
+https://www.govdata.de/web/guest/apps/-/details/bundestagswahl-2017
+
+https://www.bundeswahlleiter.de/bundestagswahlen/2017/strukturdaten.html
+
+## Packages and Folders
+
+```{r}
+# Install these packages if you don't have theme yet
+# devtools::install_github("favstats/tidytemplate")
+# install.packages("pacman")
+
+pacman::p_load(tidyverse)
+
+# Creates folders
+# tidytemplate::data_dir()
+# tidytemplate::images_dir()
+```
+
+
+## Load Data
+
+```{r, data}
+vars13 <- c("wahlkreis_nr", "kreis", "part_of", "valid", "CDU", "SPD", "FDP", "DIE LINKE", "GRÜNE", "CSU", "PIRATEN", "NPD", "Tierschutzpartei", "REP", "ÖDP", "FAMILIE", "Bündnis 21/RRP", "RENTNER", "BP", "PBC", "BüSo", "DIE VIOLETTEN", "MLPD", "Volksabstimmung", "PSG", "AfD", "BIG", "pro Deutschland", "DIE RECHTE", "DIE FRAUEN", "FREIE WÄHLER", "Nichtwähler", "PARTEI DER VERNUNFT", "Die PARTEI", "B", "BGD", "DKP", "NEIN!", "Übrige")
+
+ # ss %>% 
+
+btw13 <- readr::read_delim("data/btw13_kerg.csv", 
+    ";", escape_double = FALSE, comment = "#", 
+    trim_ws = TRUE)  %>% 
+  janitor::clean_names() %>% 
+  select(nr, gebiet, geh_f6_rt, str_which(pattern = "Endg<fc>ltig", .)) %>%
+  select(nr, gebiet, geh_f6_rt, str_which(pattern = "Zweitstimme", .))  %>% 
+  select(-x6, -x10, -x14) %>% 
+  set_names(vars13) %>% 
+  mutate(cdu_csu = case_when(
+    is.na(CDU) ~ CSU,
+    T ~ CDU
+  )) %>% 
+  mutate(valid = as.numeric(valid)) %>% 
+    mutate(cdu_csu = as.numeric(cdu_csu)) %>% 
+    mutate(perc_cdu_csu = (cdu_csu / valid) * 100) %>% 
+    mutate(SPD = as.numeric(SPD)) %>% 
+    mutate(perc_spd = (SPD / valid) * 100) %>% 
+    mutate(linke = as.numeric(`DIE LINKE`)) %>% 
+    mutate(perc_linke = (linke / valid) * 100) %>% 
+    mutate(FDP = as.numeric(FDP)) %>% 
+    mutate(perc_fdp = (FDP / valid) * 100) %>% 
+    mutate(GRUNE = as.numeric(`GRÜNE`)) %>% 
+    mutate(perc_grun = (GRUNE / valid) * 100) %>% 
+    mutate(AfD = as.numeric(AfD)) %>% 
+    mutate(perc_afd = (AfD / valid) * 100) %>% 
+    mutate(NPD = as.numeric(NPD)) %>% 
+    mutate(NPD = ifelse(is.na(NPD), 0, NPD)) %>% 
+    mutate(perc_npd = (NPD / valid) * 100) %>% 
+  select(wahlkreis_nr, kreis, part_of, valid, AfD, perc_afd, NPD, perc_npd, perc_spd, perc_linke, perc_fdp, perc_grun, perc_cdu_csu) %>% 
+  drop_na(wahlkreis_nr) %>% 
+  filter(part_of != 99)
+
+strukturdaten13 <- read_delim("btw13_strukturdaten.csv", 
+    ";", escape_double = FALSE, comment = "#", 
+    trim_ws = TRUE, col_types = cols(.default = "c")) %>% 
+  janitor::clean_names() %>% 
+  .[-1,] %>% 
+  mutate(unemployment = str_replace(arbeitslosenquote_ende_dezember_2012_insgesamt, ",", ".") %>% as.numeric) %>% 
+  mutate(sgbii = str_replace(empf_e4_nger_innen_von_leistungen_nach_sgb_ii_am_31_12_2012_insgesamt_je_1000_einwohner, ",", ".") %>% as.numeric) %>%   
+  mutate(wanderung = str_replace(zu_bzw_abnahme_der_bev_f6_lkerung_2011_wanderungssaldo_je_1000_einwohner, ",", ".") %>% as.numeric) %>%  
+  filter(!(str_detect(wahlkreis_name, "insgesamt|Insgesamt"))) %>% 
+  select(wahlkreis_nr, unemployment, sgbii, wahlkreis_name, land) %>%
+  mutate(wahlkreis_nr = as.integer(wahlkreis_nr))
+
+btw13_data <- btw13 %>% 
+  left_join(strukturdaten13)
+
+tidytemplate::save_it(btw13_data)
+
+mod1 <- lm(perc_afd ~ unemployment, data = btw13_data)
+
+broom::glance(mod1)
+
+btw13 %>% 
+  left_join(strukturdaten13) %>% 
+  ggplot(aes(unemployment, perc_npd)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+```
+
+
+## BTW 17
+
+```{r, analysis}
+vars17 <- c("wahlkreis_nr", "kreis", "part_of", "valid", "Christlich Demokratische Union Deutschlands", "Sozialdemokratische Partei Deutschlands", "DIE LINKE", "BÜNDNIS 90/DIE GRÜNEN", "Christlich-Soziale Union in Bayern e.V.", "Freie Demokratische Partei", "Alternative für Deutschland", "Piratenpartei Deutschland", "Nationaldemokratische Partei Deutschlands", "FREIE WÄHLER", "PARTEI MENSCH UMWELT TIERSCHUTZ", "Ökologisch-Demokratische Partei", "Die PARTEI", "Bayernpartei", "Ab jetzt...Demokratie durch Volksabstimmung", "Partei der Vernunft", "Marxistisch-Leninistische Partei Deutschlands", "Bürgerrechtsbewegung Solidarität", "Sozialistische Gleichheitspartei", "DIE RECHTE", "Allianz Deutscher Demokraten", "Allianz für Menschenrechte", "bergpartei", "Bündnis Grundeinkommen", "DEMOKRATIE IN BEWEGUNG", "Deutsche Kommunistische Partei", "Deutsche Mitte", "Die Grauen – Für alle Generationen", "Die Urbane. Eine HipHop Partei", "Madgeburger Gartenpartei", "Menschliche Welt", "Partei der Humanisten", "Partei für Gesundheitsforschung", "V-Partei³ - Partei für Veränderung", "Bündnis C - Christen für Deutschland", "DIE EINHEIT", "Die Violetten", "Familien-Partei Deutschlands", "Feministische Partei DIE FRAUEN", "Mieterpartei", "Neue Liberale – Die Sozialliberalen", "UNABHÄNGIGE für bürgernahe Demokratie", "Übrige")
+
+btw17 <- readr::read_delim("data/btw17_kerg.csv", 
+    ";", escape_double = FALSE, comment = "#", 
+    trim_ws = TRUE)  %>% 
+  janitor::clean_names() %>% 
+  select(nr, gebiet, gehort_zu, grep("Endgültig", .)) %>%
+  select(nr, gebiet, gehort_zu, grep("Zweitstimme", .)) %>% 
+  select(-x6, -x10, -x14) %>% 
+  set_names(vars17) %>% 
+    mutate(valid = as.numeric(valid)) %>% 
+    mutate(AfD = as.numeric(`Alternative für Deutschland`)) %>% 
+    mutate(perc_afd = (AfD / valid) * 100) %>% 
+    mutate(NPD = as.numeric(`Nationaldemokratische Partei Deutschlands`)) %>% 
+    mutate(NPD = ifelse(is.na(NPD), 0, NPD)) %>% 
+    mutate(perc_npd = (NPD / valid) * 100) %>% 
+  select(wahlkreis_nr, kreis, part_of, valid, AfD, perc_afd, NPD, perc_npd) %>% 
+  drop_na(wahlkreis_nr) %>% 
+  filter(part_of != 99)
+
+btw17
+
+strukturdaten17 <- read_delim("btw17_strukturdaten.csv", 
+    ";", escape_double = FALSE,col_types = cols(.default = "c"), 
+    comment = "#", trim_ws = TRUE, skip = 1) %>% 
+  janitor::clean_names() %>% 
+  mutate(unemployment = str_replace(arbeitslosenquote_marz_2017_insgesamt, ",", ".") %>% as.numeric) %>% 
+  mutate(wanderung = str_replace(zu_bzw_abnahme_der_bev_f6_lkerung_2015_wanderungssaldo_je_1000_einwohner, ",", ".") %>% as.numeric) %>% 
+  mutate(sgbii = str_replace(empfanger_innen_von_leistungen_nach_sgb_ii_am_31_12_2016_insgesamt_je_1000_einwohner, ",", ".") %>% as.numeric) %>% 
+  filter(!(str_detect(wahlkreis_name, "insgesamt|Insgesamt"))) %>% 
+  select(wahlkreis_nr, unemployment, sgbii, wahlkreis_name, land) %>%
+  mutate(wahlkreis_nr = as.integer(wahlkreis_nr))
+
+btw17_data <- btw17 %>% 
+  left_join(strukturdaten17)
+
+tidytemplate::save_it(btw17_data)
+
+mod2 <- lm(perc_afd ~ unemployment, data = btw17_data)
+
+broom::glance(mod2)
+
+btw17 %>% 
+  left_join(strukturdaten17) %>% 
+  ggplot(aes(unemployment, perc_npd)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+```
+
+## All Together
+
+### AfD
+
+```{r}
+btw_data <- bind_rows(btw17_data %>% 
+  mutate(year = "BTW 2017") %>% 
+  mutate(part_of = as.character(part_of)),
+  btw13_data %>% 
+    mutate(year = "BTW 2013")) 
+
+mod13 <- lm(perc_afd ~ unemployment, data = btw13_data)
+mod17 <- lm(perc_afd ~ unemployment, data = btw17_data)
+
+options(scipen = 999)
+
+r2_13 <- broom::glance(mod13) %>%
+  mutate(r.squared = r.squared * 100) %>% 
+  .$r.squared %>% 
+  format(., digits = 3) %>% 
+  paste0(., "%")
+
+r2_17 <- broom::glance(mod17) %>%
+  mutate(r.squared = r.squared * 100) %>% 
+  .$r.squared %>% 
+  format(., digits = 3) %>% 
+  paste0(., "%")
+
+get_labs <- function (pval) 
+{
+  dplyr::case_when(is.na(pval) ~ "", 
+                   pval < 0.001 ~ "p < 0.001",
+                   pval < 0.01 ~ "p < 0.01", 
+                   pval < 0.05 ~ "p < 0.05", 
+                   pval < 0.1 ~ 
+      "p < 0.10", 
+      TRUE ~ "")
+}
+
+
+label_dat <- tibble(year = c("BTW 2013", "BTW 2017"),
+     text =   c(
+broom::tidy(mod13) %>% 
+  filter(term == "unemployment") %>% 
+  mutate(text = paste0("b = ", round(estimate, 2), 
+         ", ", get_labs(p.value),
+         ", R Squared = ", r2_13)) %>% 
+  .$text,
+
+broom::tidy(mod17) %>% 
+  filter(term == "unemployment") %>% 
+  mutate(text = paste0("b = ", round(estimate, 2), 
+         ", ", get_labs(p.value),
+         ", R Squared = ", r2_17)) %>% 
+  .$text
+))
+
+gg_afd <- btw_data %>% 
+  ggplot(aes(unemployment, perc_afd)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_wrap(~year) +
+  theme_minimal() +
+  geom_text(data = label_dat, aes(y = 34, x = 8, label = text), show.legend = F) +
+  labs(x = "Unemployment Rate in %", y = "Vote Share AfD in %",title = "AfD Vote Share and Unemployment Rate in the 2013 and 2017 German Elections", caption = "N = 299 Electoral Districts\nData from govdata.de and bundeswahlleiter.de\n@FabioFavusMaxim; favstats.eu") +
+  theme(title = element_text(face = "bold"), 
+        strip.background = element_rect(fill = "grey"), 
+        strip.text = element_text(face = "bold"))
+
+tidytemplate::ggsave_it(gg_afd, width = 10, height = 6)
+```
+
+## SGB II
+
+```{r}
+btw_data <- bind_rows(btw17_data %>% 
+  mutate(year = "BTW 2017") %>% 
+  mutate(part_of = as.character(part_of)),
+  btw13_data %>% 
+    mutate(year = "BTW 2013")) 
+
+mod13 <- lm(perc_npd ~ sgbii, data = btw13_data)
+mod17 <- lm(perc_npd ~ sgbii, data = btw17_data)
+
+options(scipen = 999)
+
+r2_13 <- broom::glance(mod13) %>%
+  mutate(r.squared = r.squared * 100) %>% 
+  .$r.squared %>% 
+  format(., digits = 3) %>% 
+  paste0(., "%")
+
+r2_17 <- broom::glance(mod17) %>%
+  mutate(r.squared = r.squared * 100) %>% 
+  .$r.squared %>% 
+  format(., digits = 3) %>% 
+  paste0(., "%")
+
+get_labs <- function (pval) 
+{
+  dplyr::case_when(is.na(pval) ~ "", 
+                   pval < 0.001 ~ "p < 0.001",
+                   pval < 0.01 ~ "p < 0.01", 
+                   pval < 0.05 ~ "p < 0.05", 
+                   pval < 0.1 ~ 
+      "p < 0.10", 
+      TRUE ~ "")
+}
+
+
+label_dat <- tibble(year = c("BTW 2013", "BTW 2017"),
+     text =   c(
+broom::tidy(mod13) %>% 
+  filter(term == "sgbii") %>% 
+  mutate(text = paste0("b = ", round(estimate, 2), 
+         ", ", get_labs(p.value),
+         ", R Squared = ", r2_13)) %>% 
+  .$text,
+
+broom::tidy(mod17) %>% 
+  filter(term == "sgbii") %>% 
+  mutate(text = paste0("b = ", round(estimate, 2), 
+         ", ", get_labs(p.value),
+         ", R Squared = ", r2_17)) %>% 
+  .$text
+))
+
+gg_npd <- btw_data %>% 
+  ggplot(aes(sgbii, perc_npd)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_wrap(~year) +
+  theme_minimal() +
+  geom_text(data = label_dat, aes(y = 5, x = 100, label = text), show.legend = F) +
+  labs(x = "sgbii Rate in %", 
+       y = "Vote Share npd in %",
+       title = "npd Vote Share and sgbii Rate in the 2013 and 2017 German Elections", 
+       caption = "N = 299 Electoral Districts\nData from govdata.de and bundeswahlleiter.de\n@FabioFavusMaxim; favstats.eu") +
+  theme(title = element_text(face = "bold"), 
+        strip.background = element_rect(fill = "grey"), 
+        strip.text = element_text(face = "bold"))
+
+tidytemplate::ggsave_it(gg_npd_sgbii, width = 10, height = 6)
+```
+
+
+```{r}
+btw_data %>% 
+  arrange(desc(unemployment))
+
+gg_afd_eastwest <- btw_data %>% 
+  mutate(east_west = case_when(
+    str_detect(land, "Berlin|Brand|Nieder|Sachs") ~ "East Germany",
+    T ~ "West Germany"
+  )) %>% 
+  ggplot(aes(unemployment, perc_afd, color = east_west)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_grid(~year) +
+  theme_minimal() +
+  # geom_text(data = label_dat, aes(y = 34, x = 8, label = text), show.legend = F) +
+  labs(x = "Unemployment Rate in %", y = "Vote Share AfD in %", title = "AfD Vote Share and Unemployment Rate in the 2013 and 2017 German Elections", caption = "N = 299 Electoral Districts\nData from govdata.de and bundeswahlleiter.de\n@FabioFavusMaxim; favstats.eu") +
+  theme(title = element_text(face = "bold"), 
+        strip.background = element_rect(fill = "grey"), 
+        strip.text = element_text(face = "bold")) +
+  ggthemes::scale_color_fivethirtyeight() 
+
+gg_afd_eastwest
+
+tidytemplate::ggsave_it(gg_afd_eastwest, width = 10, height = 6)
+
+```
+
+### NPD
+
+```{r}
+btw_data <- bind_rows(btw17_data %>% 
+  mutate(year = "BTW 2017") %>% 
+  mutate(part_of = as.character(part_of)),
+  btw13_data %>% 
+    mutate(year = "BTW 2013")) 
+
+mod13 <- lm(perc_npd ~ unemployment, data = btw13_data)
+mod17 <- lm(perc_npd ~ unemployment, data = btw17_data)
+
+options(scipen = 999)
+
+r2_13 <- broom::glance(mod13) %>%
+  mutate(r.squared = r.squared * 100) %>% 
+  .$r.squared %>% 
+  format(., digits = 3) %>% 
+  paste0(., "%")
+
+r2_17 <- broom::glance(mod17) %>%
+  mutate(r.squared = r.squared * 100) %>% 
+  .$r.squared %>% 
+  format(., digits = 3) %>% 
+  paste0(., "%")
+
+get_labs <- function (pval) 
+{
+  dplyr::case_when(is.na(pval) ~ "", 
+                   pval < 0.001 ~ "p < 0.001",
+                   pval < 0.01 ~ "p < 0.01", 
+                   pval < 0.05 ~ "p < 0.05", 
+                   pval < 0.1 ~ 
+      "p < 0.10", 
+      TRUE ~ "")
+}
+
+
+label_dat <- tibble(year = c("BTW 2013", "BTW 2017"),
+     text =   c(
+broom::tidy(mod13) %>% 
+  filter(term == "unemployment") %>% 
+  mutate(text = paste0("b = ", round(estimate, 2), 
+         ", ", get_labs(p.value),
+         ", R Squared = ", r2_13)) %>% 
+  .$text,
+
+broom::tidy(mod17) %>% 
+  filter(term == "unemployment") %>% 
+  mutate(text = paste0("b = ", round(estimate, 2), 
+         ", ", get_labs(p.value),
+         ", R Squared = ", r2_17)) %>% 
+  .$text
+))
+
+gg_npd <- btw_data %>% 
+  ggplot(aes(unemployment, perc_npd)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_wrap(~year) +
+  theme_minimal() +
+  geom_text(data = label_dat, aes(y = 5, x = 8, label = text), show.legend = F) +
+  labs(x = "Unemployment Rate in %", y = "Vote Share npd in %",title = "npd Vote Share and Unemployment Rate in the 2013 and 2017 German Elections", caption = "N = 299 Electoral Districts\nData from govdata.de and bundeswahlleiter.de\n@FabioFavusMaxim; favstats.eu") +
+  theme(title = element_text(face = "bold"), 
+        strip.background = element_rect(fill = "grey"), 
+        strip.text = element_text(face = "bold"))
+
+tidytemplate::ggsave_it(gg_npd, width = 10, height = 6)
+```
+
+
+```{r}
+btw_data %>% 
+  arrange(desc(unemployment))
+
+btw_data %>% 
+  mutate(east_west = case_when(
+    str_detect(land, "Berlin|Brand|Nieder|Sachs") ~ "East Germany",
+    T ~ "West Germany"
+  )) %>% 
+  ggplot(aes(unemployment, perc_npd)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_grid(year~east_west) +
+  theme_minimal() +
+  # geom_text(data = label_dat, aes(y = 34, x = 8, label = text), show.legend = F) +
+  labs(x = "Unemployment Rate in %", y = "Vote Share npd in %", title = "npd Vote Share and Unemployment Rate in the 2013 and 2017 German Elections", caption = "N = 299 Electoral Districts\nData from govdata.de and bundeswahlleiter.de\n@FabioFavusMaxim; favstats.eu") +
+  theme(title = element_text(face = "bold"), 
+        strip.background = element_rect(fill = "grey"), 
+        strip.text = element_text(face = "bold"))
+
+```
+
+
+
+```{r}
+btw_data <- btw_data %>% 
+  mutate(east_west = case_when(
+    str_detect(land, "Berlin|Brand|Nieder|Sachs") ~ "East Germany",
+    T ~ "West Germany"
+  )) 
+
+btw_data %>% 
+  ggplot(aes(perc_afd, perc_npd)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_grid(year~east_west, scales = "free_x") +
+  theme_minimal()
+```
+
+```{r}
+btw_lagged <- btw_data %>% 
+  filter(year == "BTW 2017") %>%
+  select(wahlkreis_nr, perc_afd) %>% 
+left_join(
+  btw_data %>% 
+  filter(year == "BTW 2013") %>%
+  select(wahlkreis_nr, perc_npd))  %>% 
+left_join(
+  btw_data %>% select(wahlkreis_nr, east_west)) 
+  
+mod_lagged <- lm(perc_afd ~ perc_npd + east_west, data = btw_lagged)
+
+texreg::screenreg(mod_lagged)
+
+btw_lagged %>% 
+  ggplot(aes(perc_afd, perc_npd)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  theme_minimal() +
+  facet_wrap(~east_west) +
+  ggthemes::scale_color_fivethirtyeight()
+```
+
+```{r}
+btw_lagged_all <- btw_data %>% 
+  filter(year == "BTW 2017") %>%
+  select(wahlkreis_nr, perc_afd) %>% 
+left_join(
+  btw_data %>% 
+  filter(year == "BTW 2013") %>%
+  select(wahlkreis_nr, perc_spd, perc_cdu_csu, perc_linke, 
+         perc_grun, perc_fdp, perc_npd))  %>% 
+  rename(`AfD 2017` = perc_afd,
+         `SPD 2013` = perc_spd,
+         `CDU/CSU 2013` = perc_cdu_csu,
+         `Die Linke 2013` = perc_linke,
+         `Die Grünen 2013` = perc_grun,
+         `FDP 2013` = perc_fdp,
+         `NPD 2013` = perc_npd) %>% 
+left_join(
+  btw_data %>% select(wahlkreis_nr, east_west)) %>% 
+  select(-wahlkreis_nr) 
+
+pacman::p_load(GGally)
+
+plot_lagged_all <- btw_lagged_all %>% 
+  ggpairs(lower = list(continuous = "smooth"),
+   mapping = aes(color = east_west)) +
+  labs(title = "Where did AfD voters come from?", 
+       caption = "N = 299 Electoral Districts\nData from bundeswahlleiter.de\n@FabioFavusMaxim; favstats.eu") +
+  theme(title = element_text(face = "bold"), 
+        strip.background = element_rect(fill = "grey"), 
+        strip.text = element_text(face = "bold"))
+
+
+for(i in 1:plot_lagged_all$nrow) {
+  for(j in 1:plot_lagged_all$ncol){
+    plot_lagged_all[i,j] <- plot_lagged_all[i,j] + ggthemes::scale_color_fivethirtyeight() 
+  }
+}
+
+plot_lagged_all
+
+
+tidytemplate::ggsave_it(plot_lagged_all, width = 15, height = 13)
+```
+
+```{r}
+options(scipen = 999)
+
+afd_origin <- btw_lagged_all %>% 
+  gather(parties, perc, -east_west, -`AfD 2017`) %>% 
+  ggplot(aes(perc, `AfD 2017`, 
+             color = east_west, 
+             shape = east_west)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~parties, scales = "free") +
+  ggthemes::scale_color_fivethirtyeight("Region") +
+  theme_minimal()  +
+  labs(x = "Vote Share in Percent", y = "AfD Vote Share in 2017",
+       title = "Where did AfD voters come from?", 
+       subtitle = "Comparing 2013 Election results with Vote Share of the AfD in the 2017 Election on the Electoral District Level",
+       caption = "N = 299 Electoral Districts\nData from Federal Returning Officer ('Bundeswahlleiter')\n@FabioFavusMaxim; favstats.eu") +
+  theme(title = element_text(face = "bold"), 
+        strip.background = element_rect(fill = "lightgrey"), 
+        strip.text = element_text(face = "bold"),
+        legend.position = "bottom") +
+  guides(shape = F) #+
+  # ggpubr::stat_cor()
+
+btw_lagged_all
+
+tidytemplate::ggsave_it(afd_origin, width = 12, height = 8)
+```
+
+
+## gganimate
+
+```{r}
+library(gganimate)
+
+bind_rows(btw17_data %>% 
+  mutate(year = "BTW 2017"),
+  btw13_data %>% 
+    mutate(year = "BTW 2013")) %>% 
+  ggplot(aes(unemployment, perc_afd, color = year)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  transition_states(year, transition_length = 10, state_length = 4)
+```
+
