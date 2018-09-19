@@ -52,9 +52,8 @@ get_labs <- function (pval)
                    pval < 0.001 ~ "p < 0.001",
                    pval < 0.01 ~ "p < 0.01", 
                    pval < 0.05 ~ "p < 0.05", 
-                   pval < 0.1 ~ 
-      "p < 0.10", 
-      TRUE ~ "")
+                   pval < 0.1 ~  "p < 0.10", 
+      TRUE ~ "p > 0.10")
 }
 
 
@@ -273,6 +272,9 @@ btw17_data
 ## All Together
 
 ``` r
+btw13_data <- tidytemplate::load_it("data/btw13_data.Rdata")
+btw17_data <- tidytemplate::load_it("data/btw17_data.Rdata")
+
 btw_data <- bind_rows(btw17_data %>% 
   mutate(year = "BTW 2017") %>% 
   mutate(part_of = as.character(part_of)),
@@ -283,7 +285,7 @@ btw_data <- bind_rows(btw17_data %>%
     T ~ "West Germany"
   )) 
 
-tidytemplate::save_it(btw17_data)
+tidytemplate::save_it(btw_data)
 
 btw_data
 ```
@@ -575,7 +577,7 @@ gg_afd_wanderung <- btw_data %>%
   theme_minimal() +
   geom_text(data = label_dat, aes(y = 34, x = 15, label = text), show.legend = F) +
   labs(x = "Migration Saldo", y = "Vote Share AfD in %",
-       title = "AfD Vote Share and Migration Saldo in the 2013 and 2017 German Elections",
+       title = "AfD Vote Share and Net Migration in the 2013 and 2017 German Elections",
        caption = "N = 299 Electoral Districts\nData from govdata.de and bundeswahlleiter.de\n@FabioFavusMaxim; favstats.eu") +
   theme(title = element_text(face = "bold"), 
         strip.background = element_rect(fill = "lightgrey"), 
@@ -600,7 +602,7 @@ gg_afd_eastwest_wanderung <- btw_data %>%
   facet_wrap(~year) +
   theme_minimal() +
   labs(x = "Migration Saldo", y = "Vote Share AfD in %",
-       title = "AfD Vote Share and Migration Saldo in the 2013 and 2017 German Elections",
+       title = "AfD Vote Share and Net Migration in the 2013 and 2017 German Elections",
        caption = "N = 299 Electoral Districts\nData from govdata.de and bundeswahlleiter.de\n@FabioFavusMaxim; favstats.eu")  +
   theme(title = element_text(face = "bold"), 
         strip.background = element_rect(fill = "lightgrey"), 
@@ -616,6 +618,36 @@ gg_afd_eastwest_wanderung
 
 ``` r
 tidytemplate::ggsave_it(gg_afd_eastwest_wanderung, width = 10, height = 6)
+```
+
+##### Just BTW 2017
+
+``` r
+gg_afd_wanderung17 <- btw_data %>% 
+  filter(year == "BTW 2017") %>% 
+  ggplot(aes(wanderung, perc_afd, color = east_west)) +
+  geom_point(aes(shape = east_west), alpha = 0.8) +
+  geom_smooth(method = "lm") +
+  theme_minimal() +
+  # geom_text(data = label_dat %>% 
+  #             filter(year == "BTW 2017"), aes(y = 34, x = 15, label = text), show.legend = F) +
+  labs(x = "Net Migration per 1000 inhabitants", y = "Vote Share AfD in %",
+       title = "AfD Vote Share and Net Migration in the 2017 German Elections",
+       caption = "N = 299 Electoral Districts\nData from govdata.de and bundeswahlleiter.de\n@FabioFavusMaxim; favstats.eu")   +
+  theme(title = element_text(face = "bold"), 
+        strip.background = element_rect(fill = "lightgrey"), 
+        strip.text = element_text(face = "bold"),
+        legend.position = "bottom") +
+  ggthemes::scale_color_colorblind("Region") +
+  guides(shape = F)
+
+gg_afd_wanderung17
+```
+
+<img src="btw_data_files/figure-gfm/unnamed-chunk-12-1.png" style="display: block; margin: auto;" />
+
+``` r
+tidytemplate::ggsave_it(gg_afd_wanderung17, width = 10, height = 6)
 ```
 
 #### NPD
@@ -652,7 +684,7 @@ gg_npd_wanderung <- btw_data %>%
   theme_minimal() +
   geom_text(data = label_dat, aes(y = 5.2, x = 15, label = text), show.legend = F) +
   labs(x = "Migration Saldo", y = "Vote Share NPD in %",
-       title = "NPD Vote Share and Migration Saldo in the 2013 and 2017 German Elections",
+       title = "NPD Vote Share and Net Migration in the 2013 and 2017 German Elections",
        caption = "N = 299 Electoral Districts\nData from govdata.de and bundeswahlleiter.de\n@FabioFavusMaxim; favstats.eu") +
   theme(title = element_text(face = "bold"), 
         strip.background = element_rect(fill = "lightgrey"), 
@@ -661,7 +693,7 @@ gg_npd_wanderung <- btw_data %>%
 gg_npd_wanderung
 ```
 
-<img src="btw_data_files/figure-gfm/unnamed-chunk-12-1.png" style="display: block; margin: auto;" />
+<img src="btw_data_files/figure-gfm/unnamed-chunk-13-1.png" style="display: block; margin: auto;" />
 
 ``` r
 tidytemplate::ggsave_it(gg_npd_wanderung, width = 10, height = 6)
@@ -677,7 +709,7 @@ gg_npd_eastwest_wanderung <- btw_data %>%
   facet_wrap(~year) +
   theme_minimal() +
   labs(x = "Migration Saldo", y = "Vote Share NPD in %",
-       title = "NPD Vote Share and Migration Saldo in the 2013 and 2017 German Elections",
+       title = "NPD Vote Share and Net Migration in the 2013 and 2017 German Elections",
        caption = "N = 299 Electoral Districts\nData from govdata.de and bundeswahlleiter.de\n@FabioFavusMaxim; favstats.eu")  +
   theme(title = element_text(face = "bold"), 
         strip.background = element_rect(fill = "lightgrey"), 
@@ -689,7 +721,7 @@ gg_npd_eastwest_wanderung <- btw_data %>%
 gg_npd_eastwest_wanderung
 ```
 
-<img src="btw_data_files/figure-gfm/unnamed-chunk-13-1.png" style="display: block; margin: auto;" />
+<img src="btw_data_files/figure-gfm/unnamed-chunk-14-1.png" style="display: block; margin: auto;" />
 
 ``` r
 tidytemplate::ggsave_it(gg_npd_eastwest_wanderung, width = 10, height = 6)
@@ -729,7 +761,7 @@ gg_linke_wanderung <- btw_data %>%
   theme_minimal() +
   geom_text(data = label_dat, aes(y = 34, x = 15, label = text), show.legend = F) +
   labs(x = "Migration Saldo", y = "Vote Share 'Die Linke' in %",
-       title = "'Die Linke' Vote Share and Migration Saldo in the 2013 and 2017 German Elections",
+       title = "'Die Linke' Vote Share and Net Migration in the 2013 and 2017 German Elections",
        caption = "N = 299 Electoral Districts\nData from govdata.de and bundeswahlleiter.de\n@FabioFavusMaxim; favstats.eu") +
   theme(title = element_text(face = "bold"), 
         strip.background = element_rect(fill = "lightgrey"), 
@@ -738,7 +770,7 @@ gg_linke_wanderung <- btw_data %>%
 gg_linke_wanderung
 ```
 
-<img src="btw_data_files/figure-gfm/unnamed-chunk-14-1.png" style="display: block; margin: auto;" />
+<img src="btw_data_files/figure-gfm/unnamed-chunk-15-1.png" style="display: block; margin: auto;" />
 
 ``` r
 tidytemplate::ggsave_it(gg_linke_wanderung, width = 10, height = 6)
@@ -754,7 +786,7 @@ gg_linke_eastwest_wanderung <- btw_data %>%
   facet_wrap(~year) +
   theme_minimal() +
   labs(x = "Migration Saldo", y = "Vote Share 'Die Linke in %",
-       title = "'Die Linke' Vote Share and Migration Saldo in the 2013 and 2017 German Elections",
+       title = "'Die Linke' Vote Share and Net Migration in the 2013 and 2017 German Elections",
        caption = "N = 299 Electoral Districts\nData from govdata.de and bundeswahlleiter.de\n@FabioFavusMaxim; favstats.eu")  +
   theme(title = element_text(face = "bold"), 
         strip.background = element_rect(fill = "lightgrey"), 
@@ -766,7 +798,7 @@ gg_linke_eastwest_wanderung <- btw_data %>%
 gg_linke_eastwest_wanderung
 ```
 
-<img src="btw_data_files/figure-gfm/unnamed-chunk-15-1.png" style="display: block; margin: auto;" />
+<img src="btw_data_files/figure-gfm/unnamed-chunk-16-1.png" style="display: block; margin: auto;" />
 
 ``` r
 tidytemplate::ggsave_it(gg_linke_eastwest_wanderung, width = 10, height = 6)
@@ -839,7 +871,7 @@ afd_origin <- btw_lagged_all %>%
 afd_origin
 ```
 
-<img src="btw_data_files/figure-gfm/unnamed-chunk-17-1.png" style="display: block; margin: auto;" />
+<img src="btw_data_files/figure-gfm/unnamed-chunk-18-1.png" style="display: block; margin: auto;" />
 
 ``` r
 tidytemplate::ggsave_it(afd_origin, width = 12, height = 8)
@@ -847,23 +879,11 @@ tidytemplate::ggsave_it(afd_origin, width = 12, height = 8)
 
 **To-Do**
 
-## gganimate
-
-``` r
-library(gganimate)
-
-btw_data %>% 
-  ggplot(aes(unemployment, perc_afd, color = year)) +
-  geom_point() +
-  geom_smooth(method = "lm") +
-  transition_states(year, transition_length = 10, state_length = 4)
-```
-
-<img src="btw_data_files/figure-gfm/unnamed-chunk-18-1.gif" style="display: block; margin: auto;" />
-
 ## mapping
 
 ``` r
+btw13_data <- tidytemplate::load_it("data/btw_data.Rdata")
+
 library(rgdal)
 btw_raw <- readOGR("data/Geometrie_Wahlkreise_19DBT_geo.shp") 
 ```
@@ -931,13 +951,17 @@ gg_btw_map17 <- btw_map17 %>%
                        # labels = c(1:10)) +
   theme(plot.title = element_text(hjust = 0.5, size = 19, face = "bold"),
     legend.justification = c(1, 0),
-    legend.position = c(0.3, 0.82),
-    legend.title = element_text(size = 10, face = "bold"), strip.text = element_text(size = 12),
+    legend.position = c(0.82, 0.91),
+    legend.title = element_text(size = 16, face = "bold"), 
+    strip.text = element_text(size = 12),
     #axis.ticks.length = unit(3, "cm"),
-    legend.direction = "horizontal") +
-  guides(fill = guide_colorbar(barwidth = 10, barheight = 0.5,
+    legend.direction = "horizontal",
+    plot.caption = element_text(size = 13)) +
+  guides(fill = guide_colorbar(barwidth = 12, barheight = 0.5,
                 title.position = "top", title.hjust = 0.5,
-                label.theme = element_text(colour = "black", size = 5, angle = 0)))
+                label.theme = element_text(colour = "black", size = 14, angle = 0))) +
+  labs(title = "German General Election 2017 - AfD Results", 
+       caption = "299 Electoral Districts   \nData from Federal Returning Officer ('Bundeswahlleiter')   \n@FabioFavusMaxim; favstats.eu   ")
 
 gg_btw_map17
 ```
@@ -946,6 +970,49 @@ gg_btw_map17
 
 ``` r
 tidytemplate::ggsave_it(gg_btw_map17, width = 8, height = 12)
+```
+
+``` r
+btw_map <- bind_rows(btw_map13 %>% 
+            mutate(year = "BTW 2013"), 
+          btw_map17 %>% 
+            mutate(year = "BTW 2017"))
+
+gg_btw_map <- btw_map %>% 
+  ggplot(aes(fill = perc_afd)) +
+  geom_map(map = btw_map17,
+         aes(x = long, y = lat, group = group, map_id = id),
+         color = "black", size = 0.4)  + 
+  theme_void() +
+  facet_wrap(~year) +
+  coord_map() +
+  viridis::scale_fill_viridis("AfD Vote Share in %",
+                               option = "D", discrete = F, end = .8) +
+                       #       limits = c(1, 10),
+                       # breaks = c(1:10),
+                       # labels = c(1:10)) +
+  theme(plot.title = element_text(hjust = 0.5, size = 19, face = "bold"),
+    legend.justification = c(1, 0),
+    legend.position = c(.63, 0.91),
+    legend.title = element_text(size = 12, face = "bold"), 
+    strip.text = element_text(size = 13),
+    plot.margin=unit(c(0,0,0,0),"mm"),
+    #axis.ticks.length = unit(3, "cm"),
+    legend.direction = "horizontal",
+    plot.caption = element_text(size = 13)) +
+  guides(fill = guide_colorbar(barwidth = 10, barheight = 0.5,
+                title.position = "top", title.hjust = 0.5,
+                label.theme = element_text(colour = "black", size = 11, angle = 0))) +
+  labs(title = "German General Elections 2013 and 2017 - AfD Results\n", 
+       caption = "299 Electoral Districts   \nData from Federal Returning Officer ('Bundeswahlleiter')   \n@FabioFavusMaxim; favstats.eu   ")
+
+gg_btw_map
+```
+
+<img src="btw_data_files/figure-gfm/unnamed-chunk-21-1.png" style="display: block; margin: auto;" />
+
+``` r
+tidytemplate::ggsave_it(gg_btw_map, width = 8, height = 8)
 ```
 
 ``` r
@@ -975,10 +1042,63 @@ btw_map17_unemp <- btw_map17 %>%
 btw_map17_unemp
 ```
 
-<img src="btw_data_files/figure-gfm/unnamed-chunk-21-1.png" style="display: block; margin: auto;" />
+<img src="btw_data_files/figure-gfm/unnamed-chunk-22-1.png" style="display: block; margin: auto;" />
 
 ``` r
 tidytemplate::ggsave_it(btw_map17_unemp, width = 8, height = 12)
+```
+
+## gganimate
+
+``` r
+# library(gganimate)
+# 
+# btw_data %>% 
+#   ggplot(aes(unemployment, perc_afd, color = year)) +
+#   geom_point() +
+#   geom_smooth(method = "lm") +
+#   transition_states(year, transition_length = 10, state_length = 4)
+```
+
+``` r
+# btw_map_anim <- btw_map %>% 
+#   ggplot(aes(fill = perc_afd)) +
+#   geom_map(map = btw_map,
+#          aes(x = long, y = lat, group = group, map_id = id),
+#          color = "black", size = 0.4)  + 
+#   theme_void() +
+#   coord_map() +
+#   geom_text(aes(x = 7, y = 55, 
+#                 label = paste0("Year: ", year)), size = 7) +
+#   viridis::scale_fill_viridis("AfD Vote Share in %",
+#                                option = "D", discrete = F, end = .8) +
+#                        #       limits = c(1, 10),
+#                        # breaks = c(1:10),
+#                        # labels = c(1:10)) +
+#   theme(plot.title = element_text(hjust = 0.5, size = 19, face = "bold"),
+#     legend.justification = c(1, 0),
+#     legend.position = c(0.82, 0.91),
+#     legend.title = element_text(size = 16, face = "bold"), 
+#     strip.text = element_text(size = 12),
+#     #axis.ticks.length = unit(3, "cm"),
+#     legend.direction = "horizontal",
+#     plot.caption = element_text(size = 13)) +
+#   guides(fill = guide_colorbar(barwidth = 12, barheight = 0.5,
+#                 title.position = "top", title.hjust = 0.5,
+#                 label.theme = element_text(colour = "black", size = 14, angle = 0))) +
+#   labs(title = "German General Elections - AfD Results", 
+#        caption = "299 Electoral Districts   \nData from Federal Returning Officer ('Bundeswahlleiter')   \n@FabioFavusMaxim; favstats.eu   ") +
+#   transition_states(year, transition_length = 10, state_length = 4)
+# 
+# # btw_map_anim
+# 
+# # tidytemplate::ggsave_it(btw_map_anim, width = 8, height = 12)
+# 
+# btw_map_anim %>% animate(
+#   nframes = 100, fps = 15, width = 666.6667, height = 1000, detail = 1
+# )
+# 
+# anim_save("images/btw_map_anim.gif")
 ```
 
 ## GGally
@@ -1005,7 +1125,7 @@ for(i in 1:plot_lagged_all$nrow) {
 plot_lagged_all
 ```
 
-<img src="btw_data_files/figure-gfm/unnamed-chunk-22-1.png" style="display: block; margin: auto;" />
+<img src="btw_data_files/figure-gfm/unnamed-chunk-25-1.png" style="display: block; margin: auto;" />
 
 ``` r
 tidytemplate::ggsave_it(plot_lagged_all, width = 15, height = 13)
@@ -1063,7 +1183,7 @@ gg_npd_sgbii <- btw_data %>%
 gg_npd_sgbii
 ```
 
-<img src="btw_data_files/figure-gfm/unnamed-chunk-23-1.png" style="display: block; margin: auto;" />
+<img src="btw_data_files/figure-gfm/unnamed-chunk-26-1.png" style="display: block; margin: auto;" />
 
 ``` r
 tidytemplate::ggsave_it(gg_npd_sgbii, width = 10, height = 6)
