@@ -882,7 +882,7 @@ tidytemplate::ggsave_it(afd_origin, width = 12, height = 8)
 ## mapping
 
 ``` r
-btw13_data <- tidytemplate::load_it("data/btw_data.Rdata")
+btw_data <- tidytemplate::load_it("data/btw_data.Rdata")
 
 library(rgdal)
 btw_raw <- readOGR("data/Geometrie_Wahlkreise_19DBT_geo.shp") 
@@ -1016,6 +1016,42 @@ tidytemplate::ggsave_it(gg_btw_map, width = 8, height = 8)
 ```
 
 ``` r
+gg_btw_map_blue <- btw_map %>% 
+  ggplot(aes(fill = perc_afd)) +
+  geom_map(map = btw_map17,
+         aes(x = long, y = lat, group = group, map_id = id),
+         color = "black", size = 0.4)  + 
+  theme_void() +
+  facet_wrap(~year) +
+  coord_map() +
+  scale_fill_continuous("AfD Vote Share in %", 
+                        low = "#00b4ff", 
+                        high = "#002f42") +
+  theme(plot.title = element_text(hjust = 0.5, size = 19, face = "bold"),
+    legend.justification = c(1, 0),
+    legend.position = c(.63, 0.91),
+    legend.title = element_text(size = 12, face = "bold"), 
+    strip.text = element_text(size = 13),
+    plot.margin=unit(c(0,0,0,0),"mm"),
+    #axis.ticks.length = unit(3, "cm"),
+    legend.direction = "horizontal",
+    plot.caption = element_text(size = 13)) +
+  guides(fill = guide_colorbar(barwidth = 10, barheight = 0.5,
+                title.position = "top", title.hjust = 0.5,
+                label.theme = element_text(colour = "black", size = 11, angle = 0))) +
+  labs(title = "German General Elections 2013 and 2017 - AfD Results\n", 
+       caption = "299 Electoral Districts   \nData from Federal Returning Officer ('Bundeswahlleiter')   \n@FabioFavusMaxim; favstats.eu   ")
+
+gg_btw_map_blue
+```
+
+<img src="btw_data_files/figure-gfm/unnamed-chunk-22-1.png" style="display: block; margin: auto;" />
+
+``` r
+tidytemplate::ggsave_it(gg_btw_map_blue, width = 8, height = 8)
+```
+
+``` r
 btw_map17_unemp <- btw_map17 %>% 
   ggplot(aes(fill = unemployment)) +
   geom_map(map = btw_map17,
@@ -1042,7 +1078,7 @@ btw_map17_unemp <- btw_map17 %>%
 btw_map17_unemp
 ```
 
-<img src="btw_data_files/figure-gfm/unnamed-chunk-22-1.png" style="display: block; margin: auto;" />
+<img src="btw_data_files/figure-gfm/unnamed-chunk-23-1.png" style="display: block; margin: auto;" />
 
 ``` r
 tidytemplate::ggsave_it(btw_map17_unemp, width = 8, height = 12)
@@ -1125,7 +1161,7 @@ for(i in 1:plot_lagged_all$nrow) {
 plot_lagged_all
 ```
 
-<img src="btw_data_files/figure-gfm/unnamed-chunk-25-1.png" style="display: block; margin: auto;" />
+<img src="btw_data_files/figure-gfm/unnamed-chunk-26-1.png" style="display: block; margin: auto;" />
 
 ``` r
 tidytemplate::ggsave_it(plot_lagged_all, width = 15, height = 13)
@@ -1183,7 +1219,7 @@ gg_npd_sgbii <- btw_data %>%
 gg_npd_sgbii
 ```
 
-<img src="btw_data_files/figure-gfm/unnamed-chunk-26-1.png" style="display: block; margin: auto;" />
+<img src="btw_data_files/figure-gfm/unnamed-chunk-27-1.png" style="display: block; margin: auto;" />
 
 ``` r
 tidytemplate::ggsave_it(gg_npd_sgbii, width = 10, height = 6)
