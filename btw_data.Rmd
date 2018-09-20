@@ -200,6 +200,8 @@ btw17_data <- btw17 %>%
 tidytemplate::save_it(btw17_data)
 
 btw17_data
+
+
 ```
 
 ## All Together
@@ -1058,3 +1060,267 @@ gg_npd_sgbii
 
 tidytemplate::ggsave_it(gg_npd_sgbii, width = 10, height = 6)
 ```
+
+## More BTWs
+
+```{r}
+btw13_data <- tidytemplate::load_it("data/btw13_data.Rdata")
+btw17_data <- tidytemplate::load_it("data/btw17_data.Rdata")
+land_data <- tidytemplate::load_it("data/land_data.Rdata") %>% 
+  mutate(part_of = as.character(part_of))
+
+vars09 <- readr::read_delim("data/btw_kerg/btw09_kerg.csv", 
+                           ";", escape_double = FALSE, 
+                           comment = "#", 
+                           trim_ws = TRUE) %>% 
+  names(.) %>% 
+  stringi::stri_enc_tonative() %>% 
+  str_replace("\032", "U") %>% 
+  str_replace("Nr", "wahlkreis_nr") %>% 
+  str_replace("Gebiet", "kreis") %>% 
+  str_replace("gehUrt", "part_of") %>% 
+  str_replace("GUltige", "valid") %>% 
+  .[!(str_detect(., "X|Wahlberechtigte|WUhler|UngUltige"))]
+
+btw09_data <- readr::read_delim("data/btw_kerg/btw09_kerg.csv", 
+                           ";", escape_double = FALSE, 
+                           comment = "#", 
+                           trim_ws = TRUE)  %>% 
+  janitor::clean_names() %>% 
+  select(nr, gebiet, geh_f6_rt, str_which(pattern = "Endg<fc>ltig", .)) %>%
+  select(nr, gebiet, geh_f6_rt, str_which(pattern = "Zweitstimme", .))  %>% 
+  select(-x6, -x10, -x14) %>% 
+  set_names(vars09) %>% 
+  mutate(cdu_csu = ifelse(is.na(CDU), CSU, CDU)) %>% 
+  mutate(perc_cdu_csu = get_percentage(cdu_csu, valid)) %>%
+  mutate(perc_spd = get_percentage(SPD, valid)) %>%
+  mutate(perc_linke = get_percentage(`DIE LINKE`, valid)) %>%
+  mutate(perc_fdp = get_percentage(FDP, valid)) %>%
+  mutate(perc_grun = get_percentage(`GRUNE`, valid)) %>%
+  # mutate(perc_afd = get_percentage(AfD, valid)) %>%
+  mutate(NPD = ifelse(is.na(NPD), "0", NPD)) %>% 
+  mutate(perc_npd = get_percentage(NPD, valid)) %>%
+  select(wahlkreis_nr, kreis, part_of, valid, #perc_afd, 
+         perc_npd, perc_spd, perc_linke, perc_fdp, 
+         perc_grun, perc_cdu_csu) %>% 
+  drop_na(wahlkreis_nr) %>% 
+  filter(part_of != 99) %>% 
+  left_join(land_data)
+
+tidytemplate::save_it(btw09_data)
+
+btw09_data
+
+
+
+
+vars05 <- readr::read_delim("data/btw_kerg/btw05_kerg.csv", 
+                           ";", escape_double = FALSE, 
+                           comment = "#", 
+                           trim_ws = TRUE) %>% 
+  names(.) %>% 
+  stringi::stri_enc_tonative() %>% 
+  str_replace("\032", "U") %>% 
+  str_replace("Nr", "wahlkreis_nr") %>% 
+  str_replace("Gebiet", "kreis") %>% 
+  str_replace("gehUrt", "part_of") %>% 
+  str_replace("GUltige", "valid") %>% 
+  .[!(str_detect(., "X|Wahlberechtigte|WUhler|UngUltige"))]
+
+btw05_data <- readr::read_delim("data/btw_kerg/btw05_kerg.csv", 
+                           ";", escape_double = FALSE, 
+                           comment = "#", 
+                           trim_ws = TRUE)  %>% 
+  janitor::clean_names() %>% 
+  select(nr, gebiet, geh_f6_rt, str_which(pattern = "Endg<fc>ltig", .)) %>%
+  select(nr, gebiet, geh_f6_rt, str_which(pattern = "Zweitstimme", .))  %>% 
+  select(-x6, -x10, -x14) %>% 
+  set_names(vars05) %>% 
+  mutate(cdu_csu = ifelse(is.na(CDU), CSU, CDU)) %>% 
+  mutate(perc_cdu_csu = get_percentage(cdu_csu, valid)) %>%
+  mutate(perc_spd = get_percentage(SPD, valid)) %>%
+  mutate(perc_linke = get_percentage(`Die Linke.`, valid)) %>%
+  mutate(perc_fdp = get_percentage(FDP, valid)) %>%
+  mutate(perc_grun = get_percentage(`GRUNE`, valid)) %>%
+  # mutate(perc_afd = get_percentage(AfD, valid)) %>%
+  mutate(NPD = ifelse(is.na(NPD), "0", NPD)) %>% 
+  mutate(perc_npd = get_percentage(NPD, valid)) %>%
+  select(wahlkreis_nr, kreis, part_of, valid, #perc_afd, 
+         perc_npd, perc_spd, perc_linke, perc_fdp, 
+         perc_grun, perc_cdu_csu) %>% 
+  drop_na(wahlkreis_nr) %>% 
+  filter(part_of != 99)  %>% 
+  left_join(land_data)
+
+tidytemplate::save_it(btw05_data)
+
+btw05_data
+
+
+
+
+vars02 <- readr::read_delim("data/btw_kerg/btw02_kerg.csv", 
+                           ";", escape_double = FALSE, 
+                           comment = "#", 
+                           trim_ws = TRUE) %>% 
+  select(Wahlkreis, X2, Land, str_which(pattern = "Zweitstimme", .))  %>% 
+  select(-`Ung<fc>ltige_1`) %>% 
+  names(.) %>% 
+  stringi::stri_enc_toascii() %>% 
+  str_replace("_1", "") %>% 
+  str_replace("\032", "U") %>% 
+  str_replace("Wahlkreis", "wahlkreis_nr") %>% 
+  str_replace("X2", "kreis") %>% 
+  str_replace("Land", "part_of") %>% 
+  str_replace("GR<dc>NE", "GRUNE") %>% 
+  str_replace("G<fc>ltige", "valid") 
+
+btw02_data <- readr::read_delim("data/btw_kerg/btw02_kerg.csv", 
+                           ";", escape_double = FALSE, 
+                           comment = "#", 
+                           trim_ws = TRUE)  %>% 
+  janitor::clean_names() %>% 
+  select(wahlkreis, x2, land, str_which(pattern = "Zweitstimme", .), -ung_fc_ltige_1)  %>%  
+  .[-1,] %>% 
+  set_names(vars02) %>% 
+  mutate(wahlkreis_nr = as.integer(wahlkreis_nr)) %>% 
+  mutate(part_of = str_sub(part_of, 2) %>% 
+           as.integer %>% as.character) %>% 
+  mutate(cdu_csu = ifelse(is.na(CDU), CSU, CDU)) %>% 
+  mutate(perc_cdu_csu = get_percentage(cdu_csu, valid)) %>%
+  mutate(perc_spd = get_percentage(SPD, valid)) %>%
+  mutate(perc_linke = get_percentage(PDS, valid)) %>%
+  mutate(perc_fdp = get_percentage(FDP, valid)) %>%
+  mutate(perc_grun = get_percentage(`GRUNE`, valid)) %>%
+  # mutate(perc_afd = get_percentage(AfD, valid)) %>%
+  mutate(NPD = ifelse(is.na(NPD), "0", NPD)) %>% 
+  mutate(perc_npd = get_percentage(NPD, valid)) %>%
+  select(wahlkreis_nr, kreis, part_of, valid, #perc_afd, 
+         perc_npd, perc_spd, perc_linke, perc_fdp, 
+         perc_grun, perc_cdu_csu) %>% 
+  drop_na(wahlkreis_nr) %>% 
+  filter(part_of != 99)  %>% 
+  left_join(land_data)
+
+tidytemplate::save_it(btw02_data)
+
+btw02_data
+
+
+
+vars98 <- readr::read_delim("data/btw_kerg/btw98_kerg.csv", 
+                           ";", escape_double = FALSE, 
+                           comment = "#", 
+                           trim_ws = TRUE) %>% 
+  select(Wahlkreis, X2, Land, str_which(pattern = "Zweitstimme", .))  %>% 
+  select(-`Ung<fc>ltige_1`) %>% 
+  names(.) %>% 
+  stringi::stri_enc_toascii() %>% 
+  str_replace("_1", "") %>% 
+  str_replace("\032", "U") %>% 
+  str_replace("Wahlkreis", "wahlkreis_nr") %>% 
+  str_replace("X2", "kreis") %>% 
+  str_replace("Land", "part_of") %>% 
+  str_replace("GR<dc>NE", "GRUNE") %>% 
+  str_replace("G<fc>ltige", "valid") 
+
+btw98_data <- readr::read_delim("data/btw_kerg/btw98_kerg.csv", 
+                           ";", escape_double = FALSE, 
+                           comment = "#", 
+                           trim_ws = TRUE)  %>% 
+  janitor::clean_names() %>% 
+  select(wahlkreis, x2, land, str_which(pattern = "Zweitstimme", .), -ung_fc_ltige_1)  %>%  
+  .[-1,] %>% 
+  set_names(vars98) %>% 
+  mutate(wahlkreis_nr = as.integer(wahlkreis_nr)) %>% 
+  mutate(part_of = str_sub(part_of, 2) %>% 
+           as.integer %>% as.character) %>% 
+  mutate(cdu_csu = ifelse(is.na(CDU), CSU, CDU)) %>% 
+  mutate(perc_cdu_csu = get_percentage(cdu_csu, valid)) %>%
+  mutate(perc_spd = get_percentage(SPD, valid)) %>%
+  mutate(perc_linke = get_percentage(PDS, valid)) %>%
+  mutate(perc_fdp = get_percentage(`F.D.P.`, valid)) %>%
+  mutate(perc_grun = get_percentage(`GRUNE`, valid)) %>%
+  # mutate(perc_afd = get_percentage(AfD, valid)) %>%
+  mutate(NPD = ifelse(is.na(NPD), "0", NPD)) %>% 
+  mutate(perc_npd = get_percentage(NPD, valid)) %>%
+  select(wahlkreis_nr, kreis, part_of, valid, #perc_afd, 
+         perc_npd, perc_spd, perc_linke, perc_fdp, 
+         perc_grun, perc_cdu_csu) %>% 
+  drop_na(wahlkreis_nr) %>% 
+  filter(part_of != 99)  %>% 
+  left_join(land_data)
+
+tidytemplate::save_it(btw98_data)
+
+btw98_data
+```
+
+```{r}
+# btw98_data <- tidytemplate::load_it("data/btw98_data.Rdata")
+btw02_data <- tidytemplate::load_it("data/btw02_data.Rdata")
+btw05_data <- tidytemplate::load_it("data/btw05_data.Rdata")
+btw09_data <- tidytemplate::load_it("data/btw09_data.Rdata")
+btw13_data <- tidytemplate::load_it("data/btw13_data.Rdata")
+btw17_data <- tidytemplate::load_it("data/btw17_data.Rdata")
+
+btw_data <- bind_rows(btw17_data %>% 
+  mutate(year = "BTW 2017") %>% 
+  mutate(part_of = as.character(part_of)),
+  btw13_data %>% 
+    mutate(year = "BTW 2013"),
+  btw09_data %>% 
+  mutate(year = "BTW 2009") %>% 
+  mutate(part_of = as.character(part_of)),
+  btw05_data %>% 
+  mutate(year = "BTW 2005") %>% 
+  mutate(part_of = as.character(part_of)),
+    btw02_data %>% 
+  mutate(year = "BTW 2002") %>% 
+  mutate(part_of = as.character(part_of)))  %>% 
+  mutate(east_west = case_when(
+    str_detect(land, "Berlin|Brand|Nieder|Sachs") ~ "East Germany",
+    T ~ "West Germany"
+  )) 
+
+library(gganimate)
+
+results <- btw_data %>% 
+  mutate(year_label = year) %>% 
+  mutate(year = parse_number(year)) %>% 
+  group_by(year_label, year) %>% 
+  summarize(perc_npd = mean(perc_npd))
+
+anim_npd <- btw_data %>% 
+  mutate(year = parse_number(year)) %>% 
+  ggplot(aes(year, perc_npd)) +
+  geom_line(aes(group = wahlkreis_nr, color = east_west), 
+            size = 0.8, alpha = 0.2) +
+  geom_line(data = results, size = 1, 
+            color = "black", linetype = "dashed") +
+  # geom_vline(data = results, aes(xintercept = year), 
+  #            linetype = "dashed", color = "darkgrey") +
+  geom_text(data = results, aes(x = year, y = 6.5, label = year_label), 
+            angle = 90, color = "black", nudge_x = 0.3) +
+  ggthemes::scale_color_gdocs("Region") +
+  scale_x_continuous(breaks = c(2002, 2005, 2009, 2013, 2017),
+                     labels = c(2002, 2005, 2009, 2013, 2017)) +
+  # gganimate::transition_reveal(wahlkreis_nr, year) +
+  theme_minimal() +
+  labs(x = "", y = "Vote Share NPD in %\n",
+       title = "NPD Vote Share in German National Eelections (2002 - 2017)\n", 
+       caption = "N = 299 Electoral Districts\nData from Federal Returning Officer ('Bundeswahlleiter')\n@FabioFavusMaxim; favstats.eu") +
+  theme(title = element_text(face = "bold"), 
+        legend.position = "bottom")
+
+anim_npd
+
+tidytemplate::ggsave_it(anim_npd, width = 10, height = 6)
+
+# anim_npd %>% animate(
+#   nframes = 100, fps = 15, width = 1000, height = 600, detail = 1
+# )
+# 
+# anim_save("images/anim_npd.gif")
+```
+
