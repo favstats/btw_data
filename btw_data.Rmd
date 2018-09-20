@@ -764,6 +764,10 @@ btw_map_wt <- spTransform(btw_raw, CRS("+proj=longlat +datum=WGS84"))
 btw_map <- fortify(btw_map_wt) %>% 
   left_join(btw_map_dat, by = "id")
 
+tidytemplate::save_it(btw_map)
+
+
+btw_map <- tidytemplate::load_it("data/btw_map.Rdata")
 
 btw_map13 <- btw_data %>% 
   filter(year == "BTW 2013") %>% 
@@ -778,17 +782,16 @@ btw_map17 <- btw_data %>%
   mutate(wahlkreis_nr = as.character(wahlkreis_nr) %>% as.integer))
 
 
-# btw_map <- bind_rows(btw_map13 %>% 
-#             mutate(year = "BTW 2013"), 
-#           btw_map17 %>% 
-#             mutate(year = "BTW 2017"))
+btw_map <- bind_rows(btw_map13 %>%
+            mutate(year = "BTW 2013"),
+          btw_map17 %>%
+            mutate(year = "BTW 2017"))
+
+
+
 ```
 
 ```{r, fig.width = 8, fig.height = 12}
-btw_map <- bind_rows(btw_map13 %>% 
-            mutate(year = "BTW 2013"), 
-          btw_map17 %>% 
-            mutate(year = "BTW 2017"))
 
 gg_btw_map17 <- btw_map17 %>% 
   ggplot(aes(fill = perc_afd)) +
@@ -1283,6 +1286,8 @@ btw_data <- bind_rows(btw17_data %>%
     T ~ "West Germany"
   )) 
 
+tidytemplate::save_it(btw_data)
+
 library(gganimate)
 
 results <- btw_data %>% 
@@ -1323,4 +1328,5 @@ tidytemplate::ggsave_it(anim_npd, width = 10, height = 6)
 # 
 # anim_save("images/anim_npd.gif")
 ```
+
 
